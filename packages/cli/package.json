@@ -1,0 +1,54 @@
+{
+  "name": "@agentpassportsh/cli",
+  "version": "0.1.1",
+  "description": "AgentPassport CLI — IPs, inboxes, and tunnels for your AI agent, one command at a time. Provisions residential proxies, owned-domain inboxes (with OTP capture), VPN tunnels, and DNS through one CLI.",
+  "license": "MIT",
+  "author": "AgentPassport contributors",
+  "homepage": "https://github.com/AgentPassport-sh/agentpassport#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgentPassport-sh/agentpassport.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/AgentPassport-sh/agentpassport/issues",
+  "keywords": [
+    "agentpassport",
+    "ai-agent",
+    "cli",
+    "otp",
+    "email",
+    "inbox",
+    "residential-proxy",
+    "vpn",
+    "dns",
+    "infrastructure"
+  ],
+  "type": "module",
+  "bin": {
+    "agentpassport": "./dist/index.js",
+    "app": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --clean --no-splitting",
+    "dev": "tsup src/index.ts --format esm --watch --no-splitting",
+    "typecheck": "tsc --noEmit",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@agentpassportsh/sdk": "workspace:*",
+    "commander": "^12.0.0",
+    "picocolors": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}

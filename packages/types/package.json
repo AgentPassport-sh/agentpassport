@@ -1,0 +1,41 @@
+{
+  "name": "@agentpassportsh/types",
+  "version": "0.1.1",
+  "description": "Shared TypeScript types for the AgentPassport SDK and CLI.",
+  "license": "MIT",
+  "author": "AgentPassport contributors",
+  "homepage": "https://github.com/AgentPassport-sh/agentpassport#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgentPassport-sh/agentpassport.git",
+    "directory": "packages/types"
+  },
+  "bugs": "https://github.com/AgentPassport-sh/agentpassport/issues",
+  "keywords": [
+    "agentpassport",
+    "types",
+    "ai-agent",
+    "infrastructure"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit"
+  }
+}

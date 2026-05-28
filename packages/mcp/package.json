@@ -1,0 +1,19 @@
+{
+  "name": "@agentpassportsh/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Model Context Protocol server exposing AgentPassport tools to MCP-compatible AI agents (Claude Code, Cursor, etc). Placeholder — P1 work, not in MVP.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentpassportsh/sdk": "workspace:*",
+    "@agentpassportsh/types": "workspace:*"
+  }
+}

@@ -1,0 +1,100 @@
+name: Publish
+
+# Triggered by pushing a tag of the form `v0.1.0` (semver, with the v prefix).
+# Workflow_dispatch lets you also run it manually from the Actions tab.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+
+# id-token: write powers two things at once:
+#   1. npm provenance — every published package carries a signed attestation
+#      pointing back to this exact workflow + commit (Verified badge on npmjs.com).
+#   2. OIDC trusted publishing — npm CLI 11.5.1+ exchanges the GitHub-issued
+#      OIDC token for a short-lived npm token, no long-lived NPM_TOKEN needed.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      # npm 11.5.1+ is required for OIDC trusted publishing. Node 20 ships
+      # with npm 10.x, so explicitly upgrade.
+      - name: Upgrade npm to 11.5.1+
+        run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      # `pnpm build` runs `tsc -p tsconfig.json` (SDK) and `tsup --dts`
+      # (types/cli/mcp) — both fail on type errors, so this is also our
+      # typecheck step. A separate `pnpm typecheck` would have to run
+      # AFTER build anyway, because the SDK's typecheck needs the built
+      # `@agentpassportsh/types` d.ts files to exist.
+      - name: Build
+        run: pnpm build
+
+      - name: Resolve version + dist-tag from the git tag
+        id: meta
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+          # Semver prerelease (e.g. 0.2.0-beta.1) → npm dist-tag "beta",
+          # so `npm i @agentpassportsh/cli` keeps pointing at the latest
+          # stable. Plain semver (0.1.0) → "latest".
+          if [[ "$TAG" == *-* ]]; then
+            CHANNEL="${TAG#*-}"        # everything after the first dash
+            CHANNEL="${CHANNEL%%.*}"   # strip "." and after → "beta" from "beta.1"
+            echo "dist_tag=$CHANNEL" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Tag $TAG → dist-tag ${CHANNEL:-latest}"
+
+          # Verify all three publishable package.json versions match the tag
+          for pkg in packages/types packages/sdk packages/cli; do
+            PKG_VER=$(node -p "require('./$pkg/package.json').version")
+            if [ "$PKG_VER" != "$TAG" ]; then
+              echo "::error::$pkg/package.json version ($PKG_VER) does not match tag ($TAG)"
+              exit 1
+            fi
+          done
+
+      # Publish each package as a packed tarball, in dependency order:
+      # types → sdk → cli. `pnpm pack` rewrites `workspace:*` to the
+      # concrete version at pack time, so the tarball contents are
+      # exactly what should land on npm. We then publish the tarball
+      # with `npm publish` so the npm CLI's built-in OIDC trusted
+      # publishing flow kicks in (npm 11.5.1+ auto-exchanges GitHub's
+      # OIDC token for a short-lived npm publish token; no long-lived
+      # NPM_TOKEN secret involved).
+      - name: Publish @agentpassportsh/types
+        working-directory: packages/types
+        run: |
+          pnpm pack
+          npm publish ./*.tgz --provenance --access public --tag ${{ steps.meta.outputs.dist_tag }}
+
+      - name: Publish @agentpassportsh/sdk
+        working-directory: packages/sdk
+        run: |
+          pnpm pack
+          npm publish ./*.tgz --provenance --access public --tag ${{ steps.meta.outputs.dist_tag }}
+
+      - name: Publish @agentpassportsh/cli
+        working-directory: packages/cli
+        run: |
+          pnpm pack
+          npm publish ./*.tgz --provenance --access public --tag ${{ steps.meta.outputs.dist_tag }}

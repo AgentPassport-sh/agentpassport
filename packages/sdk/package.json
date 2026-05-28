@@ -1,0 +1,49 @@
+{
+  "name": "@agentpassportsh/sdk",
+  "version": "0.1.1",
+  "description": "Typed TypeScript SDK for AgentPassport. A thin HTTPS client against the AgentPassport backend — gives your AI agent residential IPs, domains, inboxes (with OTP capture), and VPN tunnels.",
+  "license": "MIT",
+  "author": "AgentPassport contributors",
+  "homepage": "https://github.com/AgentPassport-sh/agentpassport#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgentPassport-sh/agentpassport.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": "https://github.com/AgentPassport-sh/agentpassport/issues",
+  "keywords": [
+    "agentpassport",
+    "ai-agent",
+    "sdk",
+    "otp",
+    "email",
+    "residential-proxy",
+    "vpn",
+    "dns",
+    "infrastructure"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentpassportsh/types": "workspace:*"
+  }
+}

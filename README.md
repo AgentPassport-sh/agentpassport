@@ -1,6 +1,6 @@
 # AgentPassport
 
-> Real-world infrastructure for AI agents — owned-domain inboxes, residential proxies, VPN tunnels — exposed through a typed SDK, a CLI, and an [Agent Skill](./skills/agentpassport-email/SKILL.md).
+> Real-world infrastructure for AI agents — owned-domain inboxes, residential proxies, VPN tunnels — exposed through a typed SDK, a CLI, and an [Agent Skill](./skills/agentpassport/SKILL.md).
 
 [![npm](https://img.shields.io/npm/v/@agentpassportsh/cli.svg?label=%40agentpassportsh%2Fcli)](https://www.npmjs.com/package/@agentpassportsh/cli)
 [![npm](https://img.shields.io/npm/v/@agentpassportsh/sdk.svg?label=%40agentpassportsh%2Fsdk)](https://www.npmjs.com/package/@agentpassportsh/sdk)
@@ -86,9 +86,9 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
 
 ## Agent Skill
 
-The [Anthropic Skill](https://docs.anthropic.com/en/docs/build-with-claude/skills) for this capability lives at [`skills/agentpassport-email/`](./skills/agentpassport-email/). Drop it into your agent and it'll know when to spin up an inbox, how to parse the raw RFC 5322 message, and when *not* to use AgentPassport (e.g. when the user asked for a temp-mail service — AgentPassport requires an owned domain).
+The [Anthropic Skill](https://docs.anthropic.com/en/docs/build-with-claude/skills) lives at [`skills/agentpassport/`](./skills/agentpassport/). Drop it into your agent and it'll know when to spin up an inbox, how to parse the raw RFC 5322 message, and when *not* to use AgentPassport (e.g. when the user asked for a temp-mail service — AgentPassport requires an owned domain).
 
-Each future capability (proxy, VPN) will ship as its own self-contained skill alongside.
+As proxy and VPN ship, the same `SKILL.md` grows to cover them — no extra skill to install or re-load.
 
 ## Why raw email, no regex?
 
@@ -101,7 +101,7 @@ Every transactional sender frames verification differently:
 "Two-step: visit the link, then enter the code that arrives"
 ```
 
-Any regex shipped server-side is wrong for some of these. The LLM is better at reading a real email than any fixed pattern — so we hand it the bytes and trust it. See the [skill docs](./skills/agentpassport-email/SKILL.md) for parsing patterns.
+Any regex shipped server-side is wrong for some of these. The LLM is better at reading a real email than any fixed pattern — so we hand it the bytes and trust it. See the [skill docs](./skills/agentpassport/SKILL.md) for parsing patterns.
 
 ## Packages
 

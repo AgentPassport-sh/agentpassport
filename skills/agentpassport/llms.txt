@@ -1,0 +1,75 @@
+# AgentPassport — Agent Skill
+
+> Real-world infrastructure for AI agents. Today: email inboxes on a domain
+> the user owns. Coming: residential IP proxies and VPN tunnels by country.
+
+One CLI, one SDK, one API key. NOT passport.js. NOT an AI-identity protocol.
+NOT temp-mail — every address is bound to a domain the user owns.
+
+## Install
+
+```
+npm install -g @agentpassportsh/cli       # CLI
+npm install @agentpassportsh/sdk          # SDK
+```
+
+## Authenticate
+
+```
+export AP_API_KEY=your_agentpassport_api_key
+```
+
+Get a key at https://agentpassport.sh.
+
+## Capability status
+
+- Email — shipped
+- Domains — shipped (precondition for email)
+- Proxy — coming (residential rotating IPs by country/city)
+- VPN — coming (WireGuard tunnels by region)
+
+## Domain prerequisite (human, once per domain)
+
+```
+app domain add myagent.com
+# returns 2 nameservers; user sets them at their registrar.
+# 5–30 min propagation.
+app domain status myagent.com --wait
+```
+
+## Email — common tasks (agent-runnable)
+
+- Provision an inbox:
+  `app email create --domain myagent.com --name support`
+- Wait for the next message (msg.raw has the full RFC 5322):
+  `app email watch --inbox support@myagent.com --timeout 60s --json`
+- Read latest N messages (newest first):
+  `app email read --inbox support@myagent.com -n 10 --json`
+- Filter by substring on the raw message:
+  `app email read --inbox support@myagent.com --filter "verification" --json`
+- Send mail from the inbox:
+  `app email send --from support@myagent.com --to b@y.com --subject "..." --body "..."`
+
+Every inbound message has shape `{ id, to, receivedAt, raw }`. Pull a code:
+
+```
+code=$(app email watch --inbox $INBOX --timeout 60s --json \
+        | head -1 | jq -r .raw | grep -oE '\b[0-9]{4,8}\b' | head -1)
+```
+
+TypeScript:
+
+```ts
+for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
+  const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+  if (code) { await externalService.verify({ email: inbox, code }); break; }
+}
+```
+
+## Documentation
+
+- Full SKILL: https://github.com/AgentPassport-sh/agentpassport/blob/main/skills/agentpassport/SKILL.md
+- CLI README: https://github.com/AgentPassport-sh/agentpassport/blob/main/packages/cli/README.md
+- SDK README: https://github.com/AgentPassport-sh/agentpassport/blob/main/packages/sdk/README.md
+- Examples:   https://github.com/AgentPassport-sh/agentpassport/tree/main/skills/agentpassport/examples
+- Source:     https://github.com/AgentPassport-sh/agentpassport

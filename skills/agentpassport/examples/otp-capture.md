@@ -91,11 +91,10 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
 ## What happens under the hood
 
 1. The external service sends mail to `support@myagent.com`.
-2. The MX record points to AgentPassport infrastructure (set up during `app domain add` + `app email create`).
-3. Cloudflare Email Routing accepts the message and forwards it to our Email Worker.
-4. The Worker streams the raw RFC 5322 bytes to our backend, which stores them untouched.
-5. `app email watch` (or `ap.email.watch(...)`) polls every 5s and yields the raw message the moment it lands.
-6. **The agent parses the raw and decides what to do.** No server-side extraction — the LLM is better at reading real mail than any regex we could pre-bake.
+2. The MX record (set up automatically by `app domain add` + `app email create`) routes it to AgentPassport.
+3. The raw RFC 5322 bytes land in our store, untouched.
+4. `app email watch` (or `ap.email.watch(...)`) polls every 5s and yields the raw message the moment it arrives.
+5. **The agent parses the raw and decides what to do.** No server-side extraction — the LLM is better at reading real mail than any regex we could pre-bake.
 
 ## Tips
 

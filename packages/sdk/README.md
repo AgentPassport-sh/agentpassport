@@ -73,7 +73,7 @@ interface InboundEmail {
 }
 ```
 
-No `subject`, `from`, `text`, `html`, or `otp` field. The agent reads `raw` and parses what it needs — that's strictly more flexible than any pre-parsed schema we could ship. See the [Agent Skill](https://github.com/AgentPassport-sh/agentpassport/blob/main/skills/agentpassport-email/SKILL.md) for parsing patterns.
+No `subject`, `from`, `text`, `html`, or `otp` field. The agent reads `raw` and parses what it needs — that's strictly more flexible than any pre-parsed schema we could ship. See the [Agent Skill](https://github.com/AgentPassport-sh/agentpassport/blob/main/skills/agentpassport/SKILL.md) for parsing patterns.
 
 ## Typed errors
 
@@ -123,7 +123,7 @@ The SDK does **not** call upstream providers directly — every operation goes t
 
 ## Runs in
 
-Node 20+, Cloudflare Workers, Deno, Bun, and modern browsers (uses `fetch` only — no Node built-ins).
+Runs on Node 20+, Deno, Bun, edge runtimes (Workers, Vercel Edge), and modern browsers. Uses `fetch` only — no Node built-ins.
 
 ## Documentation
 

@@ -159,10 +159,20 @@ function printInbox(inbox: Inbox, created: boolean): void {
 }
 
 function printEmail(m: InboundEmail): void {
-  process.stdout.write(
-    `${colors.green("✓")} ${colors.cyan(m.to)} ${colors.dim(m.receivedAt)}\n`,
-  );
-  // Dump the full raw RFC 5322 message. The agent (or human) parses
-  // whatever they care about — subject, body, links, codes.
-  process.stdout.write(`\n${m.raw}\n`);
+  process.stdout.write(`${colors.green("✓")} New message\n`);
+  kv([
+    ["from", m.from || "(unknown)"],
+    ["to", m.to],
+    ["subject", m.subject || "(no subject)"],
+    ["receivedAt", m.receivedAt],
+    ...(m.sentAt ? [["sentAt", m.sentAt] as [string, string]] : []),
+  ]);
+  const body = m.text ?? m.html ?? "";
+  if (body) {
+    process.stdout.write("\n");
+    // Soft preview cap to keep terminal output readable. Full body is
+    // still on msg.text / msg.html / msg.raw for agents that need it.
+    const preview = body.length > 800 ? body.slice(0, 800) + "\n…" : body;
+    process.stdout.write(colors.dim(preview.replace(/\r\n/g, "\n")) + "\n");
+  }
 }

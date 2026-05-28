@@ -50,18 +50,28 @@ app domain status myagent.com --wait
 - Send mail from the inbox:
   `app email send --from support@myagent.com --to b@y.com --subject "..." --body "..."`
 
-Every inbound message has shape `{ id, to, receivedAt, raw }`. Pull a code:
+Every inbound message has shape:
+
+```ts
+{ id, to, receivedAt, sentAt, from, subject, text, html, raw }
+```
+
+`from / subject / text / html` are parsed server-side from the standard
+RFC 5322 fields (no OTP-style heuristics — just spec-defined header /
+MIME extraction). `raw` is the full original message for edge cases.
+
+Pull a code:
 
 ```
 code=$(app email watch --inbox $INBOX --timeout 60s --json \
-        | head -1 | jq -r .raw | grep -oE '\b[0-9]{4,8}\b' | head -1)
+        | head -1 | jq -r .text | grep -oE '\b[0-9]{4,8}\b' | head -1)
 ```
 
 TypeScript:
 
 ```ts
 for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-  const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+  const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (code) { await externalService.verify({ email: inbox, code }); break; }
 }
 ```

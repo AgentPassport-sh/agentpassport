@@ -12,12 +12,12 @@
 
 | Capability | Today | Tomorrow |
 |---|---|---|
-| **Email** | ✅ Shipped — real inboxes on a domain you own, receive every inbound message as the full raw RFC 5322 | Outbound polish |
+| **Email** | ✅ Shipped — real inboxes on a domain you own, with `from` / `subject` / `text` / `html` pre-parsed plus the full RFC 5322 as a fallback | Outbound polish |
 | **Domains** | ✅ Shipped — bring your own, delegate nameservers, AgentPassport handles DNS + email DNS records automatically | Domain registration |
 | **Proxy** | 🛠 Coming — residential rotating IPs by country/city | — |
 | **VPN** | 🛠 Coming — WireGuard tunnels in any region | — |
 
-The headline flow: spin up an inbox `support@myagent.com`, point an external sign-up at it, watch the verification code land. The agent gets the **full raw email** (`msg.raw`) — no server-side regex, no pre-parsed fields, just the bytes — and parses whatever it actually needs.
+The headline flow: spin up an inbox `support@myagent.com`, point an external sign-up at it, watch the verification code land. The agent gets a clean view (`msg.from`, `msg.subject`, `msg.text`, `msg.html`) parsed from the standard RFC 5322 fields — plus `msg.raw` for edge cases — and decides what to do with it. No server-side OTP extraction, no content-pattern guessing.
 
 ## Install
 
@@ -75,9 +75,10 @@ const inbox = "support@myagent.com";
 await externalService.startSignup({ email: inbox });
 
 for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-  // msg.raw is the full RFC 5322. Pull out whatever the sender used —
-  // a numeric code, a confirm link, a magic token in a header.
-  const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+  // msg.text / msg.from / msg.subject are pre-parsed standard fields.
+  // msg.raw is the full RFC 5322 if you need something custom (signing,
+  // List-Unsubscribe headers, multipart oddities, etc.).
+  const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (!code) continue;
   await externalService.verify({ email: inbox, code });
   break;
@@ -90,7 +91,7 @@ The [Anthropic Skill](https://docs.anthropic.com/en/docs/build-with-claude/skill
 
 As proxy and VPN ship, the same `SKILL.md` grows to cover them — no extra skill to install or re-load.
 
-## Why raw email, no regex?
+## Why no server-side OTP extraction?
 
 Every transactional sender frames verification differently:
 
@@ -101,7 +102,7 @@ Every transactional sender frames verification differently:
 "Two-step: visit the link, then enter the code that arrives"
 ```
 
-Any regex shipped server-side is wrong for some of these. The LLM is better at reading a real email than any fixed pattern — so we hand it the bytes and trust it. See the [skill docs](./skills/agentpassport/SKILL.md) for parsing patterns.
+Any regex shipped server-side is wrong for some of these. We parse the standard RFC 5322 fields (`From`, `Subject`, `Date`) and MIME body parts (`text`, `html`) — those are spec-defined and safe — but we don't try to guess what the "code" or "link" is. The LLM is strictly better than any fixed pattern at that. See the [skill docs](./skills/agentpassport/SKILL.md) for parsing patterns.
 
 ## Packages
 

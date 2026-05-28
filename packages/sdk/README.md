@@ -25,10 +25,9 @@ for await (const msg of ap.email.watch({
   inbox: "support@myagent.com",
   timeoutMs: 60_000,
 })) {
-  // msg.raw is the full RFC 5322 — headers + body, as delivered.
-  // Parse whatever the sender used: a numeric code, a confirm link,
-  // a header value. The LLM is better at this than any fixed regex.
-  const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+  // msg.from / .subject / .text / .html are pre-parsed standard fields.
+  // msg.raw is the full RFC 5322 if you need a custom header.
+  const code = (msg.text ?? msg.html ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (!code) continue;
   await externalService.verify({ email: "support@myagent.com", code });
   break;
@@ -62,18 +61,21 @@ ap.wallet
 
 ## Inbound message shape
 
-Every inbound message has exactly four fields:
-
 ```ts
 interface InboundEmail {
-  id: string;          // server-generated id
-  to: string;          // envelope-to (the inbox that received it)
-  receivedAt: string;  // ISO 8601 timestamp
-  raw: string;         // full RFC 5322 message (headers + body)
+  id: string;                  // server-generated id
+  to: string;                  // envelope-to (the inbox that received it)
+  receivedAt: string;          // when AgentPassport received it (ISO 8601)
+  sentAt: string | null;       // sender's Date: header (ISO 8601)
+  from: string;                // full From: header
+  subject: string;             // Subject: header ("" if missing)
+  text: string | null;         // decoded text/plain body
+  html: string | null;         // decoded text/html body
+  raw: string;                 // full RFC 5322 — edge cases
 }
 ```
 
-No `subject`, `from`, `text`, `html`, or `otp` field. The agent reads `raw` and parses what it needs — that's strictly more flexible than any pre-parsed schema we could ship. See the [Agent Skill](https://github.com/AgentPassport-sh/agentpassport/blob/main/skills/agentpassport/SKILL.md) for parsing patterns.
+`from / subject / text / html` are parsed server-side from the standard RFC 5322 fields and MIME body parts — these are spec-defined, not heuristic, so the agent gets a clean view without scanning DKIM signatures and routing headers. No OTP extraction or body pattern-matching, however — that's the agent's job. `raw` is always there if you need a custom header, signature inspection, or anything else outside the standard fields. See the [Agent Skill](https://github.com/AgentPassport-sh/agentpassport/blob/main/skills/agentpassport/SKILL.md) for usage patterns.
 
 ## Typed errors
 

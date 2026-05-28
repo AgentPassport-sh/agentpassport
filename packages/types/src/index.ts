@@ -63,20 +63,42 @@ export interface Inbox {
 }
 
 /**
- * An inbound email as exposed to SDK consumers. Raw-only — the agent
- * receives the full RFC 5322 message and parses whatever it actually
- * cares about (subject, from, body, embedded codes, HTML links).
+ * An inbound email as exposed to SDK consumers.
  *
- * Service-side parsing was removed 2026-05-28: every regex assumption
- * we made (OTP shape, subject patterns) was fragile and pre-empted the
- * agent's reasoning. The agent is smarter than our regex.
+ * Standard RFC 5322 headers (From, Subject, Date) and MIME body parts
+ * (text/plain, text/html) are parsed server-side using a standard
+ * library — these are non-heuristic fields formally defined by the
+ * spec, so exposing them is safe and saves the agent from scanning
+ * boilerplate (DKIM signatures, ARC chains, Received hops).
+ *
+ * The full original message is still available in `raw` for edge
+ * cases — custom headers, signature inspection, multi-part variants
+ * the standard fields don't cover.
+ *
+ * What we DO NOT do server-side: extract OTP codes, guess sender
+ * intent, or otherwise pattern-match the body. Those decisions are
+ * the agent's.
  */
 export interface InboundEmail {
   id: string;
   /** Final delivery address (envelope-to). */
   to: string;
+  /** When AgentPassport received the message. */
   receivedAt: ISO8601;
-  /** Full RFC 5322 message including all headers + body. */
+  /**
+   * The sender's `Date:` header, parsed to ISO 8601. May be null if
+   * the sender didn't include a parseable Date header.
+   */
+  sentAt: ISO8601 | null;
+  /** Full `From:` header value (including display name when present). */
+  from: string;
+  /** `Subject:` header value. Empty string if the sender omitted one. */
+  subject: string;
+  /** Decoded text/plain MIME part. Null if the message has no plain-text part. */
+  text: string | null;
+  /** Decoded text/html MIME part. Null if the message has no HTML part. */
+  html: string | null;
+  /** Full RFC 5322 message — headers + body, as delivered. */
   raw: string;
 }
 

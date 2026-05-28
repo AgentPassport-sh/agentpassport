@@ -88,8 +88,9 @@ for await (const msg of ap.email.watch({
   inbox: "support@myagent.com",
   timeoutMs: 60_000,
 })) {
-  // msg.raw is the full RFC 5322 — pull whatever the sender used.
-  const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+  // msg.from / .subject / .text are pre-parsed standard fields.
+  // msg.raw is still there for edge cases.
+  const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (code) {
     await externalService.verify({ email: "support@myagent.com", code });
     break;
@@ -101,25 +102,37 @@ for await (const msg of ap.email.watch({
 
 ```ts
 interface InboundEmail {
-  id: string;          // server-generated id
-  to: string;          // envelope-to (the inbox that received it)
-  receivedAt: string;  // ISO 8601 timestamp
-  raw: string;         // full RFC 5322 message — headers + body, as delivered
+  id: string;                  // server-generated id
+  to: string;                  // envelope-to (the inbox that received it)
+  receivedAt: string;          // when AgentPassport received it (ISO 8601)
+  sentAt: string | null;       // sender's Date: header (ISO 8601)
+  from: string;                // full From: header, e.g. "Alice <a@example.com>"
+  subject: string;             // Subject: header ("" if missing)
+  text: string | null;         // decoded text/plain body part
+  html: string | null;         // decoded text/html body part
+  raw: string;                 // full RFC 5322 — for forensics / edge cases
 }
 ```
 
-The agent reads `raw` and parses whatever it needs (numeric code, confirm link, headers). No server-side regex, no pre-parsed fields — that's strictly more flexible than any pattern shippable in advance.
+The standard RFC 5322 headers and MIME body parts are parsed for you with a standard library — these are spec-defined fields, not heuristics, so the agent gets a clean view without scanning DKIM signatures or ARC chains. No server-side OTP extraction or content pattern-matching — that's the agent's job.
 
-Common extractions:
+Common code paths:
 
 ```ts
-msg.raw.match(/\b\d{4,8}\b/)?.[0]                 // numeric code
-msg.raw.match(/https?:\/\/\S+/)?.[0]              // first URL
-msg.raw.match(/^From:\s*(.+)$/mi)?.[1]?.trim()    // From header
-msg.raw.match(/^Subject:\s*(.+)$/mi)?.[1]?.trim() // Subject header
+// Verification code in the plain-text body
+const code = (msg.text ?? msg.html ?? "").match(/\b\d{4,8}\b/)?.[0];
+
+// First confirmation link
+const link = (msg.text ?? msg.html ?? "").match(/https?:\/\/\S+/)?.[0];
+
+// Sender-known check (useful for routing)
+const isFromOpenAI = /openai\.com/i.test(msg.from);
+
+// Need a custom header? Fall back to raw.
+const messageId = msg.raw.match(/^Message-ID:\s*(.+)$/mi)?.[1]?.trim();
 ```
 
-If the body is base64 / quoted-printable encoded, decode that section first — or hand the raw to the LLM and ask it to read.
+If `text` is null but `html` exists, strip tags or hand the HTML to the LLM directly. If the standard fields are empty but raw is non-empty (rare — malformed sender), fall back to scanning raw.
 
 ## When to use
 

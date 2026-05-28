@@ -31,16 +31,16 @@ SIGNUP_EMAIL=support@myagent.com
 #    HTTP form post, whatever — that part is not AgentPassport's job)
 your-signup-script --email "$SIGNUP_EMAIL"
 
-# 2. Block for up to 60 seconds, grab the next message's raw body,
+# 2. Block for up to 60 seconds, grab the next message's text body,
 #    and pull the first 4–8 digit run as the OTP. Tweak the regex for
 #    the sender's actual format.
-RAW=$(app email watch --inbox "$SIGNUP_EMAIL" --timeout 60s --json \
-        | head -1 | jq -r .raw)
-if [ -z "$RAW" ]; then
+BODY=$(app email watch --inbox "$SIGNUP_EMAIL" --timeout 60s --json \
+        | head -1 | jq -r '.text // .html // .raw')
+if [ -z "$BODY" ]; then
   echo "No mail arrived in 60s" >&2
   exit 1
 fi
-OTP=$(printf '%s' "$RAW" | grep -oE '\b[0-9]{4,8}\b' | head -1)
+OTP=$(printf '%s' "$BODY" | grep -oE '\b[0-9]{4,8}\b' | head -1)
 
 # 3. Submit the OTP back to the external service
 your-signup-script --verify "$OTP"
@@ -58,8 +58,9 @@ await externalService.startSignup({ email: inbox });
 
 try {
   for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-    // msg.raw is the full RFC 5322. Pull out whatever the sender used.
-    const code = msg.raw.match(/\b\d{4,8}\b/)?.[0];
+    // msg.text / msg.from / msg.subject are pre-parsed; msg.raw is the
+    // original RFC 5322 in case you need a custom header.
+    const code = (msg.text ?? msg.html ?? "").match(/\b\d{4,8}\b/)?.[0];
     if (!code) continue; // not the verification mail — keep waiting
 
     await externalService.verify({ email: inbox, code });
@@ -81,7 +82,7 @@ Some services skip the code and send a click-to-confirm URL. Same flow, differen
 
 ```ts
 for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-  const link = msg.raw.match(/https?:\/\/\S*verify\S*/)?.[0];
+  const link = (msg.text ?? msg.html ?? "").match(/https?:\/\/\S*verify\S*/)?.[0];
   if (!link) continue;
   await fetch(link); // hit the confirm URL
   break;

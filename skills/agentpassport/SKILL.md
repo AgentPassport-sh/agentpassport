@@ -13,7 +13,8 @@ One CLI, one SDK, one API key.
 
 | Area | Status |
 |---|---|
-| Email — inboxes on a domain the user owns | ✅ Shipped |
+| Email — receive on a domain the user owns | ✅ Shipped |
+| Email — send from a domain the user owns | ✅ Shipped |
 | Domains — bring-your-own, DNS auto-configured | ✅ Shipped |
 | Proxy — residential IPs by country / city | 🛠 Coming |
 | VPN — WireGuard tunnel in any region | 🛠 Coming |
@@ -64,8 +65,9 @@ app email read --inbox support@myagent.com -n 10 --json
 # Filter — case-insensitive substring on the full raw message
 app email read --inbox support@myagent.com --filter "verification" --json
 
-# Send mail from your inbox
-app email send --from support@myagent.com --to user@example.com \
+# Send mail from any address on a domain you own. No need to create
+# the address as an inbox first — domain ownership is enough.
+app email send --from noreply@myagent.com --to user@example.com \
                --subject "Welcome" --body "Hi."
 
 # List / delete inboxes
@@ -75,7 +77,7 @@ app email delete --address support@myagent.com
 
 All runtime commands support `--json` (recommended for agents) and `--quiet` (single-value, pipe-friendly).
 
-## Email — SDK
+## Email — SDK (receive)
 
 ```ts
 import { AgentPassport } from "@agentpassportsh/sdk";
@@ -93,6 +95,47 @@ for await (const msg of ap.email.watch({
   const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (code) {
     await externalService.verify({ email: "support@myagent.com", code });
+    break;
+  }
+}
+```
+
+## Email — SDK (send)
+
+```ts
+// Send from any address on a domain you own. No need to create the
+// address as an inbox first — domain ownership is the only check.
+// `text` and/or `html` is required; both are fine.
+const { id } = await ap.email.send({
+  from: "noreply@myagent.com",
+  to: "user@example.com",
+  subject: "Welcome",
+  text: "Hi from your AI agent.",
+  // html: "<p>Hi from your AI agent.</p>",
+  // replyTo: "support@myagent.com",
+});
+```
+
+Returns a message id. The reply (if any) lands in the inbox at the
+`from` address — pick it up with `watch` or `read` like any other
+inbound message.
+
+### Roundtrip pattern
+
+```ts
+const inbox = "support@myagent.com";
+await ap.email.create({ domain: "myagent.com", name: "support" });
+
+await ap.email.send({
+  from: inbox,
+  to: "user@example.com",
+  subject: "Verify your email",
+  text: `Reply YES to this email to confirm.`,
+});
+
+for await (const msg of ap.email.watch({ inbox, timeoutMs: 5 * 60_000 })) {
+  if ((msg.text ?? "").trim().toUpperCase().startsWith("YES")) {
+    // user confirmed
     break;
   }
 }

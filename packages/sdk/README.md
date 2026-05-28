@@ -50,7 +50,7 @@ ap.email
   .delete(address)
   .read({ inbox, filter?, since?, limit? })   // most recent first
   .watch({ inbox, filter?, timeoutMs? })      // async iterable of new mail
-  .send({ from, to, subject, text?, html?, replyTo? })
+  .send({ from, to, subject, text?, html?, replyTo? })   // returns { id }
 
 ap.wallet
   .balance()
@@ -58,6 +58,21 @@ ap.wallet
 ```
 
 `ap.proxy.*` and `ap.vpn.*` will land alongside the residential-IP and VPN capabilities.
+
+## Sending mail
+
+```ts
+const { id } = await ap.email.send({
+  from: "noreply@myagent.com",       // any address on a domain you own
+  to: "user@example.com",            // string or string[]
+  subject: "Welcome",
+  text: "Hi from your AI agent.",
+  // html: "<p>Hi from your AI agent.</p>",
+  // replyTo: "support@myagent.com",
+});
+```
+
+`from` doesn't have to be an inbox you created — domain ownership is the only requirement. Replies (if any) land back in the inbox at the `from` address, where `watch` / `read` will pick them up.
 
 ## Inbound message shape
 

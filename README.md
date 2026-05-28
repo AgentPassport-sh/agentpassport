@@ -12,7 +12,7 @@
 
 | Capability | Today | Tomorrow |
 |---|---|---|
-| **Email** | ✅ Shipped — real inboxes on a domain you own, with `from` / `subject` / `text` / `html` pre-parsed plus the full RFC 5322 as a fallback | Outbound polish |
+| **Email** | ✅ Shipped — receive and send on a domain you own. Inbound has `from` / `subject` / `text` / `html` pre-parsed plus the full RFC 5322 as a fallback. Outbound sends from any address on your domain (no inbox required first). | — |
 | **Domains** | ✅ Shipped — bring your own, delegate nameservers, AgentPassport handles DNS + email DNS records automatically | Domain registration |
 | **Proxy** | 🛠 Coming — residential rotating IPs by country/city | — |
 | **VPN** | 🛠 Coming — WireGuard tunnels in any region | — |

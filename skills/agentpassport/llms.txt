@@ -23,7 +23,8 @@ Get a key at https://agentpassport.sh.
 
 ## Capability status
 
-- Email — shipped
+- Email — receive on a domain the user owns — shipped
+- Email — send from a domain the user owns — shipped
 - Domains — shipped (precondition for email)
 - Proxy — coming (residential rotating IPs by country/city)
 - VPN — coming (WireGuard tunnels by region)
@@ -47,8 +48,10 @@ app domain status myagent.com --wait
   `app email read --inbox support@myagent.com -n 10 --json`
 - Filter by substring on the raw message:
   `app email read --inbox support@myagent.com --filter "verification" --json`
-- Send mail from the inbox:
-  `app email send --from support@myagent.com --to b@y.com --subject "..." --body "..."`
+- Send mail from any address on a domain the user owns (no inbox
+  needs to exist for `from`; domain ownership is the only check):
+  `app email send --from noreply@myagent.com --to b@y.com --subject "..." --body "..."`
+  SDK: `await ap.email.send({ from, to, subject, text, html?, replyTo? })`
 
 Every inbound message has shape:
 

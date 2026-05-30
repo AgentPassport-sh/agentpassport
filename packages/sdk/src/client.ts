@@ -92,9 +92,12 @@ export class AgentPassport {
 // ─── HTTP client (internal) ────────────────────────────────────────────────
 
 class HttpClient {
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
-  private readonly fetchImpl: typeof fetch;
+  // Accessible (not `private`) so the streaming `watch()` impl can
+  // construct its own fetch request directly — `request()` parses
+  // JSON which doesn't work for SSE.
+  readonly apiKey: string;
+  readonly baseUrl: string;
+  readonly fetchImpl: typeof fetch;
 
   constructor(options: AgentPassportOptions) {
     this.apiKey = options.apiKey;
@@ -134,7 +137,7 @@ class HttpClient {
 
     const text = await res.text();
     if (!res.ok) {
-      throw this.toTypedError(res.status, text);
+      throw this.mapHttpError(res.status, text);
     }
 
     if (!text) return undefined as T;
@@ -145,7 +148,7 @@ class HttpClient {
     }
   }
 
-  private toTypedError(status: number, text: string): AgentPassportError {
+  mapHttpError(status: number, text: string): AgentPassportError {
     let envelope: BackendErrorEnvelope | undefined;
     try {
       envelope = JSON.parse(text) as BackendErrorEnvelope;
@@ -252,28 +255,117 @@ class EmailResource {
   }
 
   /**
-   * Async iterable that polls the backend every 5s and yields new messages.
-   * Each message carries the full raw RFC 5322 in `msg.raw` — the caller
-   * parses whatever they care about (subject, body, OTP, links).
+   * Async iterable of new inbound messages — server-sent events under
+   * the hood. The HTTP connection stays open and the backend pushes a
+   * `data: {…}` line the instant new mail lands; the SDK parses each
+   * event and yields the typed `InboundEmail`.
+   *
+   * `lookbackSeconds` (default 10) replays any mail received in that
+   * window *before* connection. This closes the common race where an
+   * agent triggers a signup, then opens watch — the OTP that arrived
+   * in the gap is still delivered. Set 0 to disable.
+   *
+   * `filter` is currently applied client-side over the stream (the SSE
+   * endpoint sends every message; we skip the ones that don't match).
+   *
+   * The async generator returns when `timeoutMs` elapses or the
+   * connection closes. Errors during the stream throw out of the
+   * generator and the caller's `for await` rethrows.
    */
   async *watch(opts: WatchOptions): AsyncIterable<InboundEmail> {
     const timeoutMs = opts.timeoutMs ?? 60_000;
-    const pollIntervalMs = 5_000;
-    let since = new Date().toISOString();
-    const deadline = Date.now() + timeoutMs;
+    const lookback = opts.lookbackSeconds ?? 10;
 
-    while (Date.now() < deadline) {
-      const readOpts: ReadInboundOptions = { inbox: opts.inbox, since };
-      if (opts.filter !== undefined) readOpts.filter = opts.filter;
-      const batch = await this.read(readOpts);
-      for (const m of batch) {
-        yield m;
-        if (m.receivedAt > since) since = m.receivedAt;
-      }
-      if (batch.length === 0) {
-        await sleep(pollIntervalMs);
-      }
+    const params = new URLSearchParams();
+    params.set("inbox", opts.inbox);
+    params.set("lookback", String(lookback));
+    params.set("timeout", String(timeoutMs));
+    const url = `${this.http.baseUrl}/v1/email/stream?${params.toString()}`;
+
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), timeoutMs + 5_000);
+
+    let res: Response;
+    try {
+      res = await this.http.fetchImpl(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.http.apiKey}`,
+          Accept: "text/event-stream",
+        },
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(deadline);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new TransportError(`Network error opening stream: ${msg}`);
     }
+
+    if (!res.ok) {
+      clearTimeout(deadline);
+      const text = await res.text().catch(() => "");
+      // Reuse the same error-mapping the rest of the SDK uses so
+      // callers get typed errors (AuthenticationError, etc.).
+      throw this.http.mapHttpError(res.status, text);
+    }
+
+    if (!res.body) {
+      clearTimeout(deadline);
+      throw new TransportError("Stream opened with no body — fetch impl doesn't support streaming?");
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE: events separated by blank line. Parse and yield each.
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const rawEvent = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const msg = parseSseEvent<InboundEmail>(rawEvent);
+          if (!msg) continue; // keepalive comment, "event: timeout", or malformed
+          // Client-side filter: substring across the raw RFC 5322,
+          // case-insensitive, matches the backend `read --filter` semantics.
+          if (opts.filter !== undefined) {
+            const needle = opts.filter.toLowerCase();
+            if (!msg.raw.toLowerCase().includes(needle)) continue;
+          }
+          yield msg;
+        }
+      }
+    } finally {
+      clearTimeout(deadline);
+      try { reader.releaseLock(); } catch { /* already released */ }
+      try { controller.abort(); } catch { /* already aborted */ }
+    }
+  }
+}
+
+/**
+ * Parse a single SSE event (everything between two blank lines).
+ * Returns the deserialized JSON payload from any `data:` line, or
+ * null for keepalive comments / non-data events.
+ */
+function parseSseEvent<T>(rawEvent: string): T | null {
+  const dataLines: string[] = [];
+  for (const line of rawEvent.split("\n")) {
+    if (line.startsWith(":")) continue; // SSE comment / keepalive
+    if (line.startsWith("data: ")) dataLines.push(line.slice(6));
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5));
+  }
+  if (dataLines.length === 0) return null;
+  const data = dataLines.join("\n");
+  try {
+    return JSON.parse(data) as T;
+  } catch {
+    return null;
   }
 }
 

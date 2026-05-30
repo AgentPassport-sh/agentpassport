@@ -32,6 +32,14 @@ export interface ReadInboundOptions {
 export interface WatchOptions {
   inbox: string;
   filter?: string;
-  /** Maximum time to keep polling, in milliseconds. Defaults to 60_000. */
+  /** Maximum time to keep the connection open, in milliseconds. Defaults to 60_000. */
   timeoutMs?: number;
+  /**
+   * Seconds of recent history to replay when the stream opens.
+   * Closes the classic "trigger signup → open watch → OTP arrived in
+   * between" race: any message received in the last `lookbackSeconds`
+   * before connection is yielded first, then live events follow.
+   * Defaults to 10s. Set 0 to disable.
+   */
+  lookbackSeconds?: number;
 }

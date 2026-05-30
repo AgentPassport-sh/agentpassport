@@ -94,10 +94,23 @@ export interface InboundEmail {
   from: string;
   /** `Subject:` header value. Empty string if the sender omitted one. */
   subject: string;
-  /** Decoded text/plain MIME part. Null if the message has no plain-text part. */
+  /**
+   * Decoded text/plain MIME part. If the sender only ships an HTML
+   * body (or ships a useless "This email contains HTML content."
+   * placeholder), the server auto-populates this by stripping HTML
+   * tags so naive consumers always see something. Null only when
+   * both parts are genuinely empty.
+   */
   text: string | null;
   /** Decoded text/html MIME part. Null if the message has no HTML part. */
   html: string | null;
+  /**
+   * Best-effort numeric verification code lifted from subject + body
+   * (first 4–8 digit run, server-side). Null if no match. Agents
+   * with a different pattern (alphanumeric, longer codes, links)
+   * should ignore this and scan `text` / `html` / `raw` themselves.
+   */
+  code: string | null;
   /** Full RFC 5322 message — headers + body, as delivered. */
   raw: string;
 }

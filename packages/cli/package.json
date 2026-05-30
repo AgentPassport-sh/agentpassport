@@ -1,6 +1,6 @@
 {
   "name": "@agentpassportsh/cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "AgentPassport CLI — IPs, inboxes, and tunnels for your AI agent, one command at a time. Provisions residential proxies, owned-domain inboxes (with OTP capture), VPN tunnels, and DNS through one CLI.",
   "license": "MIT",
   "author": "AgentPassport contributors",

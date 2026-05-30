@@ -56,8 +56,14 @@ After the domain is `active`, every command below is agent-runnable.
 app email create --domain myagent.com --name support
 # → support@myagent.com
 
-# Wait for the next inbound message. msg.raw has the full RFC 5322.
+# Wait for the next inbound message (SSE under the hood — no polling).
+# Default lookback 10s catches OTPs that arrived between you triggering
+# a signup and the watch opening.
 app email watch --inbox support@myagent.com --timeout 60s --json
+
+# Shortcut: wait, lift the verification code, print it (and only it).
+# Pipe-friendly:  CODE=$(app email await-code --inbox $INBOX --timeout 60s)
+app email await-code --inbox support@myagent.com --timeout 60s
 
 # Read recent mail (newest first)
 app email read --inbox support@myagent.com -n 10 --json
@@ -90,11 +96,10 @@ for await (const msg of ap.email.watch({
   inbox: "support@myagent.com",
   timeoutMs: 60_000,
 })) {
-  // msg.from / .subject / .text are pre-parsed standard fields.
-  // msg.raw is still there for edge cases.
-  const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
-  if (code) {
-    await externalService.verify({ email: "support@myagent.com", code });
+  // msg.code is server-lifted (first 4–8 digit run in subject+body).
+  // Most OTPs match. Fall back to scanning text/html for non-numeric.
+  if (msg.code) {
+    await externalService.verify({ email: "support@myagent.com", code: msg.code });
     break;
   }
 }
@@ -151,13 +156,14 @@ interface InboundEmail {
   sentAt: string | null;       // sender's Date: header (ISO 8601)
   from: string;                // full From: header, e.g. "Alice <a@example.com>"
   subject: string;             // Subject: header ("" if missing)
-  text: string | null;         // decoded text/plain body part
+  text: string | null;         // decoded text/plain body (auto-filled from HTML when sender ships an HTML-only / placeholder text part)
   html: string | null;         // decoded text/html body part
+  code: string | null;         // best-effort numeric OTP lift (first 4–8 digit run in subject + body); null if no match
   raw: string;                 // full RFC 5322 — for forensics / edge cases
 }
 ```
 
-The standard RFC 5322 headers and MIME body parts are parsed for you with a standard library — these are spec-defined fields, not heuristics, so the agent gets a clean view without scanning DKIM signatures or ARC chains. No server-side OTP extraction or content pattern-matching — that's the agent's job.
+The standard RFC 5322 headers and MIME body parts are parsed for you. **`code` is a best-effort lift** — first 4–8 digit run found in subject/text/html. Most signup OTPs match (the server scans subject *and* body, which handles common cases like "879769 is your verification code" where the digits live in the subject). For non-numeric codes, click-links, or unusual patterns, ignore `code` and scan `text` / `html` / `raw` yourself.
 
 Common code paths:
 

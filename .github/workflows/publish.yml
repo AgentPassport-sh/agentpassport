@@ -22,7 +22,26 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Fetch all history so we can verify the tagged commit is on
+      # `main` (see "Refuse tags not on main" below). Default checkout
+      # only grabs the tag's commit + no ancestry.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Refuse to publish if the tag isn't an ancestor of `main`.
+      # Releases must come off main; tags accidentally pushed from
+      # dev / feature branches stop here with a clear message.
+      - name: Refuse tags not on main
+        run: |
+          git fetch origin main --depth=1
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "✓ tag $GITHUB_REF points at a commit on main"
+          else
+            echo "::error::tag $GITHUB_REF points at $GITHUB_SHA which is NOT on main."
+            echo "::error::Publish aborted. Merge to main first, then re-tag from there."
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v4
 

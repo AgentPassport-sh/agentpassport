@@ -5,6 +5,7 @@ export type { AgentPassportOptions } from "./client.js";
 
 export type {
   CreateInboxOptions,
+  CreateProxySessionOptions,
   SendEmailOptions,
   ReadInboundOptions,
   WatchOptions,
@@ -32,7 +33,6 @@ export type {
   ISO8601,
   OutputFormat,
   ProxySession,
-  VpnConnection,
   DomainRecord,
   DomainStatus,
   Domain,

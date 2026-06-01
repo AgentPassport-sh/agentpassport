@@ -8,9 +8,16 @@ import type {
   Domain,
   Inbox,
   InboundEmail,
+  ProxySession,
   WalletBalance,
 } from "@agentpassportsh/types";
-import type { SendEmailOptions, WatchOptions, ReadInboundOptions, CreateInboxOptions } from "./options.js";
+import type {
+  CreateInboxOptions,
+  CreateProxySessionOptions,
+  ReadInboundOptions,
+  SendEmailOptions,
+  WatchOptions,
+} from "./options.js";
 import {
   AgentPassportError,
   AuthenticationError,
@@ -74,6 +81,7 @@ interface BackendErrorEnvelope {
 export class AgentPassport {
   readonly domains: DomainsResource;
   readonly email: EmailResource;
+  readonly proxy: ProxyResource;
   readonly wallet: WalletResource;
 
   private readonly http: HttpClient;
@@ -85,6 +93,7 @@ export class AgentPassport {
     this.http = new HttpClient(options);
     this.domains = new DomainsResource(this.http);
     this.email = new EmailResource(this.http);
+    this.proxy = new ProxyResource(this.http);
     this.wallet = new WalletResource(this.http);
   }
 }
@@ -366,6 +375,26 @@ function parseSseEvent<T>(rawEvent: string): T | null {
     return JSON.parse(data) as T;
   } catch {
     return null;
+  }
+}
+
+class ProxyResource {
+  constructor(private readonly http: HttpClient) {}
+
+  /**
+   * Mint a short-lived residential proxy session anchored to a country
+   * (and optional city). The returned credentials feed straight into
+   * any HTTP client as a CONNECT proxy:
+   *
+   *   const s = await ap.proxy.session({ country: "US" });
+   *   process.env.HTTPS_PROXY =
+   *     `http://${s.username}:${s.password}@${s.host}:${s.port}`;
+   *
+   * Defaults: sticky=true, durationMinutes=30. Same sticky session
+   * reused within `expiresAt` returns the same residential IP.
+   */
+  session(opts: CreateProxySessionOptions): Promise<ProxySession> {
+    return this.http.request<ProxySession>("POST", "/v1/proxy/session", opts);
   }
 }
 

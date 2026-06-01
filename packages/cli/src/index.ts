@@ -16,6 +16,7 @@ import { registerLogin } from "./commands/login.js";
 import { registerConfig } from "./commands/config.js";
 import { registerDomain } from "./commands/domain.js";
 import { registerEmail } from "./commands/email.js";
+import { registerProxy } from "./commands/proxy.js";
 
 const program = new Command();
 
@@ -31,6 +32,7 @@ registerLogin(program);
 registerConfig(program);
 registerDomain(program);
 registerEmail(program);
+registerProxy(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   const { code, message } = mapError(err);

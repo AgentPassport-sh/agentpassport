@@ -43,3 +43,14 @@ export interface WatchOptions {
    */
   lookbackSeconds?: number;
 }
+
+export interface CreateProxySessionOptions {
+  /** ISO-3166 alpha-2 country code, e.g. "US", "GB", "JP". Case-insensitive. */
+  country: string;
+  /** Optional city slug — lowercase, dashes ok ("new-york", "tokyo"). */
+  city?: string;
+  /** Default true. Same session reused → same residential IP. */
+  sticky?: boolean;
+  /** Sticky lifetime in minutes. Default 30, server clamps to [1, 60]. */
+  durationMinutes?: number;
+}

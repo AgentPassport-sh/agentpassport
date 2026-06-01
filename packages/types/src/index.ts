@@ -7,26 +7,27 @@ export type ISO8601 = string;
 
 export type OutputFormat = "human" | "json" | "quiet";
 
-// ─── Proxy ─────────────────────────────────────────────────────────────────
+// ─── Network egress (residential proxy) ────────────────────────────────────
 
+/**
+ * A short-lived HTTP CONNECT proxy session. Pair `host:port` with
+ * `username:password` and feed it to any HTTP client as a proxy:
+ *
+ *   process.env.HTTPS_PROXY = `http://${s.username}:${s.password}@${s.host}:${s.port}`
+ *
+ * The session's underlying residential IP is anchored to `country` (and
+ * `city` if provided). Same session id, reused within `expiresAt`, returns
+ * the same residential IP — that's what `sticky` exposes.
+ */
 export interface ProxySession {
-  endpoint: string;
+  host: string;
+  port: number;
   username: string;
   password: string;
   country: Country;
   city?: City;
-  sticky?: boolean;
-  expiresAt?: ISO8601;
-}
-
-// ─── VPN ───────────────────────────────────────────────────────────────────
-
-export interface VpnConnection {
-  provider: string;
-  country: Country;
-  city?: City;
-  publicIp?: string;
-  connectedAt?: ISO8601;
+  sticky: boolean;
+  expiresAt: ISO8601;
 }
 
 // ─── DNS / Domain ──────────────────────────────────────────────────────────

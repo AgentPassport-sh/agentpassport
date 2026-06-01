@@ -1,6 +1,6 @@
 ---
 name: agentpassport
-description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns (shipped), with residential IP proxies and VPN tunnels by country coming. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, browse from a residential IP, or appear to be in a specific country. Not passport.js. Not an identity protocol. Not temp-mail — every inbox is bound to a domain the user owns.
+description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns (shipped), with country-anchored residential IP egress coming. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, or originate HTTPS traffic from a specific country. Not passport.js. Not an identity protocol. Not temp-mail — every inbox is bound to a domain the user owns.
 license: MIT
 metadata:
   homepage: https://agentpassport.sh
@@ -16,8 +16,7 @@ One CLI, one SDK, one API key.
 | Email — receive on a domain the user owns | ✅ Shipped |
 | Email — send from a domain the user owns | ✅ Shipped |
 | Domains — bring-your-own, DNS auto-configured | ✅ Shipped |
-| Proxy — residential IPs by country / city | 🛠 Coming |
-| VPN — WireGuard tunnel in any region | 🛠 Coming |
+| Network egress — residential IP in any country / city (covers what people usually want a VPN for) | 🛠 Coming |
 
 When a new capability ships, the same `SKILL.md` covers it — no extra skill to install.
 

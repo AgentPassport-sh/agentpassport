@@ -26,7 +26,7 @@ program
     "IPs, inboxes, and tunnels for your AI agent — one CLI command at a time. " +
       "Not related to passport.js and not an AI-identity protocol.",
   )
-  .version("0.0.0");
+  .version("0.2.0");
 
 registerLogin(program);
 registerConfig(program);

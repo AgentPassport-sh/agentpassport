@@ -54,3 +54,12 @@ export interface CreateProxySessionOptions {
   /** Sticky lifetime in minutes. Default 30, server clamps to [1, 60]. */
   durationMinutes?: number;
 }
+
+export interface RenewingProxySessionOptions extends CreateProxySessionOptions {
+  /**
+   * How many seconds before `expiresAt` to consider the current session
+   * stale and re-mint. Default 300 (5 min). Set lower for short-lived
+   * sessions, higher if your refresh path is slow.
+   */
+  refreshAheadSeconds?: number;
+}

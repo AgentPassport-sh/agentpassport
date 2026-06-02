@@ -23,8 +23,7 @@ const program = new Command();
 program
   .name("agentpassport")
   .description(
-    "IPs, inboxes, and tunnels for your AI agent — one CLI command at a time. " +
-      "Not related to passport.js and not an AI-identity protocol.",
+    "Inboxes and country-anchored IPs for your AI agent — one CLI command at a time.",
   )
   .version("0.2.0");
 

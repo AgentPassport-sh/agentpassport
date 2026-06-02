@@ -1,12 +1,10 @@
 # @agentpassportsh/sdk
 
-> Typed TypeScript SDK for AgentPassport. Drop into any agent (Node 20+, Workers, modern browsers) to provision real-world infrastructure — owned-domain inboxes today, residential proxies and VPN tunnels next.
+> Typed TypeScript SDK for AgentPassport. Drop into any agent (Node 20+, Workers, modern browsers) to provision real-world infrastructure — owned-domain inboxes today, country-anchored residential IPs next.
 
 ```bash
 npm install @agentpassportsh/sdk
 ```
-
-> ⚠️ AgentPassport is **not** [passport.js](https://www.passportjs.org/) (Node.js auth middleware) and **not** an AI-identity or agent-credentials protocol. It's infrastructure provisioning.
 
 ## Quick start
 

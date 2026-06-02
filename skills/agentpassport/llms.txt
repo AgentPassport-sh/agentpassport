@@ -1,10 +1,10 @@
 # AgentPassport — Agent Skill
 
 > Real-world infrastructure for AI agents. Today: email inboxes on a domain
-> the user owns. Coming: residential IP proxies and VPN tunnels by country.
+> the user owns. Coming: country-anchored residential IP egress.
 
-One CLI, one SDK, one API key. NOT passport.js. NOT an AI-identity protocol.
-NOT temp-mail — every address is bound to a domain the user owns.
+One CLI, one SDK, one API key. Not temp-mail — every address is bound to a
+domain the user owns.
 
 ## Install
 

@@ -1,21 +1,18 @@
 # AgentPassport
 
-> Real-world infrastructure for AI agents — owned-domain inboxes, residential proxies, VPN tunnels — exposed through a typed SDK, a CLI, and an [Agent Skill](./skills/agentpassport/SKILL.md).
+> Real-world infrastructure for AI agents — owned-domain inboxes and country-anchored residential IPs — exposed through a typed SDK, a CLI, and an [Agent Skill](./skills/agentpassport/SKILL.md).
 
 [![npm](https://img.shields.io/npm/v/@agentpassportsh/cli.svg?label=%40agentpassportsh%2Fcli)](https://www.npmjs.com/package/@agentpassportsh/cli)
 [![npm](https://img.shields.io/npm/v/@agentpassportsh/sdk.svg?label=%40agentpassportsh%2Fsdk)](https://www.npmjs.com/package/@agentpassportsh/sdk)
 [![license](https://img.shields.io/npm/l/@agentpassportsh/cli.svg)](./LICENSE)
 
-> ⚠️ AgentPassport is **not** [passport.js](https://www.passportjs.org/) (Node.js auth middleware) and **not** an AI-identity or agent-credentials protocol. It's infrastructure provisioning. See [`docs/BRAND.md`](./docs/BRAND.md) for the full disambiguation.
-
 ## What it does
 
 | Capability | Today | Tomorrow |
 |---|---|---|
-| **Email** | ✅ Shipped — receive and send on a domain you own. Inbound has `from` / `subject` / `text` / `html` pre-parsed plus the full RFC 5322 as a fallback. Outbound sends from any address on your domain (no inbox required first). | — |
-| **Domains** | ✅ Shipped — bring your own, delegate nameservers, AgentPassport handles DNS + email DNS records automatically | Domain registration |
-| **Proxy** | 🛠 Coming — residential rotating IPs by country/city | — |
-| **VPN** | 🛠 Coming — WireGuard tunnels in any region | — |
+| **Email** | ✅ Shipped — receive and send on a domain you own. Inbound has `from` / `subject` / `text` / `html` pre-parsed plus a best-effort `code` lift and the full RFC 5322 as a fallback. Outbound sends from any address on your domain. | — |
+| **Domains** | ✅ Shipped — bring your own, delegate nameservers, AgentPassport handles DNS + email records automatically | Domain registration |
+| **Network egress** | 🛠 Coming — country-anchored residential IPs (covers what people usually want a VPN for) | — |
 
 The headline flow: spin up an inbox `support@myagent.com`, point an external sign-up at it, watch the verification code land. The agent gets a clean view (`msg.from`, `msg.subject`, `msg.text`, `msg.html`) parsed from the standard RFC 5322 fields — plus `msg.raw` for edge cases — and decides what to do with it. No server-side OTP extraction, no content-pattern guessing.
 

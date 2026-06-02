@@ -1,6 +1,6 @@
 ---
 name: agentpassport
-description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns (shipped), with country-anchored residential IP egress coming. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, or originate HTTPS traffic from a specific country. Not passport.js. Not an identity protocol. Not temp-mail — every inbox is bound to a domain the user owns.
+description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns (shipped), with country-anchored residential IP egress coming. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, or originate HTTPS traffic from a specific country. Not temp-mail — every inbox is bound to a domain the user owns.
 license: MIT
 metadata:
   homepage: https://agentpassport.sh

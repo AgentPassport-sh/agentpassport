@@ -1,14 +1,12 @@
 # @agentpassportsh/cli
 
-> CLI for AgentPassport — owned-domain inboxes for AI agents, residential proxies and VPN tunnels next. Agent-first: JSON output, deterministic exit codes, no interactive prompts in the happy path.
+> CLI for AgentPassport — owned-domain inboxes and country-anchored residential IPs for AI agents. Agent-first: JSON output, deterministic exit codes, no interactive prompts in the happy path.
 
 ```bash
 npm install -g @agentpassportsh/cli
 ```
 
 Registers two binaries: `agentpassport` (formal) and `app` (short, recommended for daily use).
-
-> ⚠️ AgentPassport is **not** [passport.js](https://www.passportjs.org/) (Node.js auth middleware) and **not** an AI-identity or agent-credentials protocol.
 
 ## Authenticate
 

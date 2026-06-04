@@ -118,7 +118,43 @@ export interface InboundEmail {
 
 // ─── Wallet ────────────────────────────────────────────────────────────────
 
+/**
+ * Wallet balance in tokens. 1 token = $0.001 (1000 tokens = $1.00).
+ * `usdEquivalent` is provided as a convenience string ("12.34") for UI;
+ * the source of truth is `tokens` (BIGINT on the server).
+ */
 export interface WalletBalance {
-  currency: "USDC";
-  amount: number;
+  tokens: number;
+  usdEquivalent: string;
+  /** "active" | "low" | "depleted" — server-set, drives UI hints + 402s. */
+  state: string;
+}
+
+/**
+ * A single ledger row. Negative `tokensDelta` is a debit (call charge,
+ * bandwidth); positive is a credit (topup, refund, admin grant).
+ */
+export interface WalletEvent {
+  id: string;
+  /** e.g. "email.send", "proxy.bandwidth.mb", "topup", "admin.credit". */
+  action: string;
+  qty: number;
+  tokensDelta: number;
+  balanceAfterTokens: number;
+  /** Domain-object correlate (messageId, sessionId, topupIntent, etc.). */
+  ref: string | null;
+  createdAt: ISO8601;
+}
+
+/**
+ * Topup-intent handle returned by `ap.wallet.topup(...)`. Open
+ * `checkoutUrl` in a browser / WebView; once the customer pays, our
+ * AllScale webhook credits the wallet automatically.
+ */
+export interface TopupIntent {
+  intentId: string;
+  allscaleIntentId: string;
+  checkoutUrl: string;
+  amountCents: number;
+  amountCoins: string;
 }

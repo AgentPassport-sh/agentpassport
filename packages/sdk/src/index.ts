@@ -33,6 +33,8 @@ export type {
   ISO8601,
   OutputFormat,
   ProxySession,
+  TopupIntent,
+  WalletEvent,
   DomainRecord,
   DomainStatus,
   Domain,

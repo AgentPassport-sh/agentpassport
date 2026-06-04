@@ -9,7 +9,9 @@ import type {
   Inbox,
   InboundEmail,
   ProxySession,
+  TopupIntent,
   WalletBalance,
+  WalletEvent,
 } from "@agentpassportsh/types";
 import type {
   CreateInboxOptions,
@@ -401,12 +403,30 @@ class ProxyResource {
 class WalletResource {
   constructor(private readonly http: HttpClient) {}
 
+  /** Current balance + state. Tokens are the source of truth; usdEquivalent is for UI. */
   balance(): Promise<WalletBalance> {
     return this.http.request<WalletBalance>("GET", "/v1/wallet/balance");
   }
 
-  deposit(amount: number): Promise<WalletBalance> {
-    return this.http.request<WalletBalance>("POST", "/v1/wallet/deposit", { amount });
+  /** Recent ledger rows, newest first. Default 50, max 200 server-side. */
+  async events(opts: { limit?: number } = {}): Promise<WalletEvent[]> {
+    const q = opts.limit !== undefined ? `?limit=${opts.limit}` : "";
+    const { events } = await this.http.request<{ events: WalletEvent[] }>(
+      "GET",
+      `/v1/wallet/events${q}`,
+    );
+    return events;
+  }
+
+  /**
+   * Mint a topup intent. Returns a checkout URL the caller opens in a
+   * browser / WebView; once the customer pays, our AllScale webhook
+   * credits the wallet asynchronously. Poll balance() to confirm.
+   *
+   * Default min $1, max $1000 — see backend for the actual bounds.
+   */
+  topup(opts: { amountUsd: number; redirectUrl?: string }): Promise<TopupIntent> {
+    return this.http.request<TopupIntent>("POST", "/v1/wallet/topup", opts);
   }
 }
 

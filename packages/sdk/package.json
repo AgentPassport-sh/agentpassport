@@ -1,6 +1,6 @@
 {
   "name": "@agentpassportsh/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typed TypeScript SDK for AgentPassport. A thin HTTPS client against the AgentPassport backend — gives your AI agent residential IPs, domains, inboxes (with OTP capture), and VPN tunnels.",
   "license": "MIT",
   "author": "AgentPassport contributors",

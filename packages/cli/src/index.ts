@@ -17,6 +17,7 @@ import { registerConfig } from "./commands/config.js";
 import { registerDomain } from "./commands/domain.js";
 import { registerEmail } from "./commands/email.js";
 import { registerProxy } from "./commands/proxy.js";
+import { registerWallet } from "./commands/wallet.js";
 
 const program = new Command();
 
@@ -25,13 +26,14 @@ program
   .description(
     "Inboxes and country-anchored IPs for your AI agent — one CLI command at a time.",
   )
-  .version("0.2.0");
+  .version("0.2.1");
 
 registerLogin(program);
 registerConfig(program);
 registerDomain(program);
 registerEmail(program);
 registerProxy(program);
+registerWallet(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   const { code, message } = mapError(err);

@@ -26,7 +26,7 @@ program
   .description(
     "Inboxes and country-anchored IPs for your AI agent — one CLI command at a time.",
   )
-  .version("0.2.1");
+  .version("0.2.2");
 
 registerLogin(program);
 registerConfig(program);

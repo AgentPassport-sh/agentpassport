@@ -32,6 +32,8 @@ export type {
   City,
   ISO8601,
   OutputFormat,
+  PricingItem,
+  PricingTable,
   ProxySession,
   TopupIntent,
   WalletEvent,

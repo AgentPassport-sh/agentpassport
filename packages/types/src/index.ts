@@ -116,6 +116,24 @@ export interface InboundEmail {
   raw: string;
 }
 
+// ─── Pricing ───────────────────────────────────────────────────────────────
+
+export interface PricingItem {
+  /** Canonical action name (matches wallet_events.action). */
+  action: string;
+  /** Per-unit cost in tokens. */
+  tokens: number;
+  /** Convenience USD string ("0.01"); source of truth is `tokens`. */
+  usd: string;
+  description: string;
+}
+
+export interface PricingTable {
+  /** 1 token = this many USD. Currently 0.001. */
+  tokenUsd: number;
+  items: PricingItem[];
+}
+
 // ─── Wallet ────────────────────────────────────────────────────────────────
 
 /**

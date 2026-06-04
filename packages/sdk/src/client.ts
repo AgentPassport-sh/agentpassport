@@ -8,6 +8,7 @@ import type {
   Domain,
   Inbox,
   InboundEmail,
+  PricingTable,
   ProxySession,
   TopupIntent,
   WalletBalance,
@@ -97,6 +98,14 @@ export class AgentPassport {
     this.email = new EmailResource(this.http);
     this.proxy = new ProxyResource(this.http);
     this.wallet = new WalletResource(this.http);
+  }
+
+  /**
+   * Fetch the current pricing table. Public endpoint (no auth needed);
+   * agents can call this BEFORE signing up to introspect cost.
+   */
+  pricing(): Promise<PricingTable> {
+    return this.http.request<PricingTable>("GET", "/v1/pricing");
   }
 }
 

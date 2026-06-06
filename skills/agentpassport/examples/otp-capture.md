@@ -2,7 +2,7 @@
 
 The headline flow. An agent needs to sign up at an external service that requires email verification. The agent runs the sign-up form, then blocks waiting for the verification mail to land in an inbox we control, reads the raw message, and pulls out whatever the sender used (a 6-digit code, a confirmation link, etc.).
 
-> AgentPassport hands the agent the **full raw RFC 5322 message** in `msg.raw`. There is no server-side regex, no auto-extracted `otp` field. The agent reads the raw and decides what to do — that's strictly more flexible than any fixed pattern we could ship.
+> AgentPassport lifts a best-effort OTP into `msg.code` (the first 4–8 digit run in subject + body, or `null`) so the common case is one field read. It **also** hands the agent the **full raw RFC 5322 message** in `msg.raw` — so when the sender's format is unusual, the agent reads the raw and decides for itself, which is strictly more flexible than any fixed pattern.
 
 ## One-time setup (human, in dashboard or CLI)
 
@@ -31,16 +31,19 @@ SIGNUP_EMAIL=support@myagent.com
 #    HTTP form post, whatever — that part is not AgentPassport's job)
 your-signup-script --email "$SIGNUP_EMAIL"
 
-# 2. Block for up to 60 seconds, grab the next message's text body,
-#    and pull the first 4–8 digit run as the OTP. Tweak the regex for
-#    the sender's actual format.
-BODY=$(app email watch --inbox "$SIGNUP_EMAIL" --timeout 60s --json \
-        | head -1 | jq -r '.text // .html // .raw')
-if [ -z "$BODY" ]; then
+# 2. Block for up to 60 seconds and read the server-lifted OTP from
+#    msg.code. If the sender's format is unusual (code is null), fall
+#    back to your own regex over the body.
+MSG=$(app email watch --inbox "$SIGNUP_EMAIL" --timeout 60s --json | head -1)
+if [ -z "$MSG" ]; then
   echo "No mail arrived in 60s" >&2
   exit 1
 fi
-OTP=$(printf '%s' "$BODY" | grep -oE '\b[0-9]{4,8}\b' | head -1)
+OTP=$(printf '%s' "$MSG" | jq -r '.code // empty')
+if [ -z "$OTP" ]; then
+  OTP=$(printf '%s' "$MSG" | jq -r '.text // .html // .raw' \
+          | grep -oE '\b[0-9]{4,8}\b' | head -1)
+fi
 
 # 3. Submit the OTP back to the external service
 your-signup-script --verify "$OTP"
@@ -58,9 +61,9 @@ await externalService.startSignup({ email: inbox });
 
 try {
   for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-    // msg.text / msg.from / msg.subject are pre-parsed; msg.raw is the
-    // original RFC 5322 in case you need a custom header.
-    const code = (msg.text ?? msg.html ?? "").match(/\b\d{4,8}\b/)?.[0];
+    // msg.code is the server-lifted OTP; msg.text / msg.from / msg.subject
+    // are pre-parsed; msg.raw is the original RFC 5322 for custom cases.
+    const code = msg.code ?? (msg.text ?? msg.html ?? "").match(/\b\d{4,8}\b/)?.[0];
     if (!code) continue; // not the verification mail — keep waiting
 
     await externalService.verify({ email: inbox, code });
@@ -94,8 +97,8 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
 1. The external service sends mail to `support@myagent.com`.
 2. The MX record (set up automatically by `app domain add` + `app email create`) routes it to AgentPassport.
 3. The raw RFC 5322 bytes land in our store, untouched.
-4. `app email watch` (or `ap.email.watch(...)`) polls every 5s and yields the raw message the moment it arrives.
-5. **The agent parses the raw and decides what to do.** No server-side extraction — the LLM is better at reading real mail than any regex we could pre-bake.
+4. `app email watch` (or `ap.email.watch(...)`) holds an SSE stream and yields the message the moment it arrives — no polling.
+5. On read, the server parses the raw (`from / subject / text / html`) and lifts a best-effort `code`. **The raw is always included**, so when the format is unusual the agent can ignore `code` and read the raw itself — the LLM is better at odd mail than any regex.
 
 ## Tips
 

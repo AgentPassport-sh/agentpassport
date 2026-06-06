@@ -56,25 +56,27 @@ app domain status myagent.com --wait
 Every inbound message has shape:
 
 ```ts
-{ id, to, receivedAt, sentAt, from, subject, text, html, raw }
+{ id, to, receivedAt, sentAt, from, subject, text, html, code, raw }
 ```
 
 `from / subject / text / html` are parsed server-side from the standard
-RFC 5322 fields (no OTP-style heuristics — just spec-defined header /
-MIME extraction). `raw` is the full original message for edge cases.
+RFC 5322 fields (spec-defined header / MIME extraction). `code` is a
+best-effort server-lifted OTP — the first 4–8 digit run in subject + body,
+or `null` if none. `raw` is the full original message for edge cases.
 
-Pull a code:
+Pull a code (server already lifted it):
 
 ```
-code=$(app email watch --inbox $INBOX --timeout 60s --json \
-        | head -1 | jq -r .text | grep -oE '\b[0-9]{4,8}\b' | head -1)
+code=$(app email watch --inbox $INBOX --timeout 60s --json | head -1 | jq -r .code)
 ```
 
 TypeScript:
 
 ```ts
 for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
-  const code = (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
+  // msg.code is the server-lifted OTP; fall back to your own regex if the
+  // sender's format is unusual.
+  const code = msg.code ?? (msg.text ?? "").match(/\b\d{4,8}\b/)?.[0];
   if (code) { await externalService.verify({ email: inbox, code }); break; }
 }
 ```

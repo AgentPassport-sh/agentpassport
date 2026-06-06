@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import {
   AgentPassportError,
@@ -19,6 +20,12 @@ import { registerEmail } from "./commands/email.js";
 import { registerProxy } from "./commands/proxy.js";
 import { registerWallet } from "./commands/wallet.js";
 
+// Single source of truth: read the version from package.json at runtime so
+// `--version` can never drift from the published package version again.
+const { version } = createRequire(import.meta.url)("../package.json") as {
+  version: string;
+};
+
 const program = new Command();
 
 program
@@ -26,7 +33,7 @@ program
   .description(
     "Inboxes and country-anchored IPs for your AI agent — one CLI command at a time.",
   )
-  .version("0.2.2");
+  .version(version);
 
 registerLogin(program);
 registerConfig(program);

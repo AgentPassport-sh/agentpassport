@@ -28,6 +28,23 @@ export interface ProxySession {
   city?: City;
   sticky: boolean;
   expiresAt: ISO8601;
+  /** Present when the session was pinned to a key via `bindTo`. */
+  bindTo?: string;
+  /**
+   * Exit IP this binding uses. `null` while discovery hasn't succeeded
+   * yet — minting never waits on it beyond the first attempt.
+   */
+  boundIp?: string | null;
+}
+
+/** A key permanently pinned to one residential exit IP. */
+export interface ProxyBinding {
+  bindTo: string;
+  country: Country;
+  city: City | null;
+  ip: string | null;
+  ipSeenAt: ISO8601 | null;
+  createdAt: ISO8601;
 }
 
 // ─── DNS / Domain ──────────────────────────────────────────────────────────

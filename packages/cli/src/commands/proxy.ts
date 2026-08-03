@@ -15,6 +15,10 @@ export function registerProxy(program: Command): void {
     .option("--city <slug>", "Optional city slug (e.g. new-york, london)")
     .option("--no-sticky", "Don't pin to a single residential IP")
     .option("--duration <minutes>", "Session lifetime in minutes (default 30, max 60)")
+    .option(
+      "--bind-to <key>",
+      "Pin this key (e.g. an inbox address) to one IP across mints",
+    )
     .option("--export", "Print a single line: export HTTPS_PROXY=... (pipe-friendly)")
     .option("--json", "JSON output")
     .option("--quiet", "Quiet output (prints the http://user:pass@host:port URL)")
@@ -24,6 +28,7 @@ export function registerProxy(program: Command): void {
         city?: string;
         sticky?: boolean;
         duration?: string;
+        bindTo?: string;
         export?: boolean;
         json?: boolean;
         quiet?: boolean;
@@ -34,6 +39,7 @@ export function registerProxy(program: Command): void {
           city?: string;
           sticky?: boolean;
           durationMinutes?: number;
+          bindTo?: string;
         } = { country: flags.country };
         if (flags.city !== undefined) params.city = flags.city;
         if (flags.sticky === false) params.sticky = false;
@@ -41,6 +47,7 @@ export function registerProxy(program: Command): void {
           const n = Number(flags.duration);
           if (Number.isFinite(n)) params.durationMinutes = n;
         }
+        if (flags.bindTo !== undefined) params.bindTo = flags.bindTo;
 
         const session = await ap.proxy.session(params);
         const mode = chooseMode(flags);
@@ -59,6 +66,49 @@ export function registerProxy(program: Command): void {
         });
       },
     );
+
+  cmd
+    .command("bindings")
+    .description("List pinned keys and the IP each one uses")
+    .option("--json", "JSON output")
+    .action(async (flags: { json?: boolean }) => {
+      const ap = await makeClient();
+      const bindings = await ap.proxy.bindings();
+      emit(chooseMode(flags), bindings, {
+        human: (rows) => {
+          if (rows.length === 0) {
+            ok("No pinned keys yet — mint a session with --bind-to to create one");
+            return;
+          }
+          ok(`${rows.length} pinned key${rows.length === 1 ? "" : "s"}`);
+          for (const b of rows) {
+            const kvRows: Array<[string, string | number | undefined | null]> = [
+              ["bindTo", b.bindTo],
+              ["ip", b.ip ?? colors.dim("(not discovered yet)")],
+              ["country", b.country.toUpperCase()],
+            ];
+            if (b.city) kvRows.push(["city", b.city]);
+            kv(kvRows);
+            process.stdout.write("\n");
+          }
+        },
+        quiet: (rows) => rows.map((b) => `${b.bindTo}\t${b.ip ?? ""}`).join("\n"),
+      });
+    });
+
+  cmd
+    .command("unbind")
+    .description("Drop a pin — the next session for that key gets a new IP")
+    .requiredOption("--bind-to <key>", "The pinned key to release")
+    .option("--json", "JSON output")
+    .action(async (flags: { bindTo: string; json?: boolean }) => {
+      const ap = await makeClient();
+      const res = await ap.proxy.unbind(flags.bindTo);
+      emit(chooseMode(flags), res, {
+        human: () => ok(`Unpinned ${flags.bindTo}`),
+        quiet: (d) => d.deleted,
+      });
+    });
 }
 
 function proxyUrl(s: ProxySession): string {
@@ -72,14 +122,19 @@ function proxyUrl(s: ProxySession): string {
 
 function printSession(s: ProxySession): void {
   ok("Proxy session ready");
-  kv([
+  const rows: Array<[string, string | number | undefined | null]> = [
     ["host", s.host],
     ["port", String(s.port)],
     ["country", s.country.toUpperCase()],
-    ...(s.city ? ([["city", s.city]] as const) : []),
-    ["sticky", s.sticky ? "yes" : "no"],
-    ["expiresAt", s.expiresAt],
-  ]);
+  ];
+  if (s.city) rows.push(["city", s.city]);
+  rows.push(["sticky", s.sticky ? "yes" : "no"]);
+  if (s.bindTo) {
+    rows.push(["bindTo", s.bindTo]);
+    rows.push(["ip", s.boundIp ?? "(not discovered yet)"]);
+  }
+  rows.push(["expiresAt", s.expiresAt]);
+  kv(rows);
   process.stdout.write("\n");
   process.stdout.write(colors.dim("Use with any HTTP client:\n"));
   process.stdout.write(

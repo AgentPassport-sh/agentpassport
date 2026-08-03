@@ -53,6 +53,12 @@ export interface CreateProxySessionOptions {
   sticky?: boolean;
   /** Sticky lifetime in minutes. Default 30, server clamps to [1, 60]. */
   durationMinutes?: number;
+  /**
+   * Pin this session to a stable key — normally an inbox address. The
+   * first mint for a key remembers its residential IP; every later mint
+   * for the same key comes back on that IP instead of a fresh one.
+   */
+  bindTo?: string;
 }
 
 export interface RenewingProxySessionOptions extends CreateProxySessionOptions {

@@ -1,7 +1,8 @@
 # AgentPassport — Agent Skill
 
-> Real-world infrastructure for AI agents. Today: email inboxes on a domain
-> the user owns. Coming: country-anchored residential IP egress.
+> Real-world infrastructure for AI agents: email inboxes on a domain the
+> user owns, and country-anchored residential IP egress that can be pinned
+> so one identity always exits from the same IP.
 
 One CLI, one SDK, one API key. Not temp-mail — every address is bound to a
 domain the user owns.
@@ -26,7 +27,7 @@ Get a key at https://agentpassport.sh.
 - Email — receive on a domain the user owns — shipped
 - Email — send from a domain the user owns — shipped
 - Domains — shipped (precondition for email)
-- Proxy — coming (residential rotating IPs by country/city)
+- Proxy — shipped (residential IPs by country/city, pinnable per identity)
 - VPN — coming (WireGuard tunnels by region)
 
 ## Domain prerequisite (human, once per domain)
@@ -80,6 +81,26 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
   if (code) { await externalService.verify({ email: inbox, code }); break; }
 }
 ```
+
+## Proxy — common tasks (agent-runnable)
+
+- Mint a session and route the shell through it:
+  `eval "$(app proxy session --country US --export)"` then `curl https://api.ipify.org`
+- JSON form (host / port / username / password / expiresAt):
+  `app proxy session --country US --city new-york --duration 60 --json`
+- Pin an identity so every future session reuses the same IP:
+  `app proxy session --country US --bind-to support@myagent.com --json`
+  SDK: `await ap.proxy.session({ country: "US", bindTo: "support@myagent.com" })`
+- See which keys are pinned and to which IP:
+  `app proxy bindings`  ·  SDK: `await ap.proxy.bindings()`
+- Release a pin (next session gets a new IP; also the only way to change
+  a key's country):
+  `app proxy unbind --bind-to support@myagent.com`
+
+Without `--bind-to` every mint lands on a different IP. With it, the same
+upstream session is reused, so the IP holds as long as that residential
+peer stays online — best-effort, not a dedicated static IP. Sessions
+themselves last up to 60 minutes (`--duration`, default 30).
 
 ## Documentation
 

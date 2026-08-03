@@ -9,6 +9,7 @@ import type {
   Inbox,
   InboundEmail,
   PricingTable,
+  ProxyBinding,
   ProxySession,
   TopupIntent,
   WalletBalance,
@@ -403,9 +404,35 @@ class ProxyResource {
    *
    * Defaults: sticky=true, durationMinutes=30. Same sticky session
    * reused within `expiresAt` returns the same residential IP.
+   *
+   * Pass `bindTo` to keep one identity on one IP across mints — without
+   * it every mint starts a new upstream session and lands somewhere new:
+   *
+   *   await ap.proxy.session({ country: "US", bindTo: "support@myagent.com" });
    */
   session(opts: CreateProxySessionOptions): Promise<ProxySession> {
     return this.http.request<ProxySession>("POST", "/v1/proxy/session", opts);
+  }
+
+  /** Every key pinned by this account, with the IP each one uses. */
+  async bindings(): Promise<ProxyBinding[]> {
+    const res = await this.http.request<{ bindings: ProxyBinding[] }>(
+      "GET",
+      "/v1/proxy/bindings",
+    );
+    return res.bindings;
+  }
+
+  /**
+   * Drop a pin. The next `session({ bindTo })` for that key starts a
+   * fresh upstream session — which is the only way to move a key onto a
+   * different IP or a different country.
+   */
+  unbind(bindTo: string): Promise<{ deleted: string }> {
+    return this.http.request<{ deleted: string }>(
+      "DELETE",
+      `/v1/proxy/bindings/${encodeURIComponent(bindTo)}`,
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 ---
 name: agentpassport
-description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns (shipped), with country-anchored residential IP egress coming. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, or originate HTTPS traffic from a specific country. Not temp-mail — every inbox is bound to a domain the user owns.
+description: Provision real-world infrastructure for an AI agent — email inboxes on a domain the user owns, and country-anchored residential IP egress that can be pinned so one identity always exits from the same IP. Use when the agent needs to receive verification mail at an address it controls, send mail from a custom domain, originate HTTPS traffic from a specific country, or keep an account's traffic on a stable residential IP. Not temp-mail — every inbox is bound to a domain the user owns.
 license: MIT
 metadata:
   homepage: https://agentpassport.sh
@@ -16,7 +16,8 @@ One CLI, one SDK, one API key.
 | Email — receive on a domain the user owns | ✅ Shipped |
 | Email — send from a domain the user owns | ✅ Shipped |
 | Domains — bring-your-own, DNS auto-configured | ✅ Shipped |
-| Network egress — residential IP in any country / city (covers what people usually want a VPN for) | 🛠 Coming |
+| Network egress — residential IP in any country / city (covers what people usually want a VPN for) | ✅ Shipped |
+| Network egress — pin one identity to one IP across sessions | ✅ Shipped |
 
 When a new capability ships, the same `SKILL.md` covers it — no extra skill to install.
 
@@ -145,6 +146,80 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 5 * 60_000 })) {
 }
 ```
 
+## Network egress — CLI
+
+Mint a proxy session and route any HTTP client through a residential IP
+in the country you ask for. Credentials are a `host:port` plus a
+username/password pair — usable by curl, requests, Playwright, anything
+that speaks HTTP CONNECT.
+
+```bash
+# One-off session (new IP each time)
+app proxy session --country US --json
+
+# Straight into the environment — everything after this exits from the US
+eval "$(app proxy session --country US --export)"
+curl https://api.ipify.org        # → a US residential IP
+
+# City-level targeting, longer lifetime
+app proxy session --country US --city new-york --duration 60 --json
+```
+
+### Pinning an identity to one IP
+
+Without `--bind-to`, every mint starts a new upstream session and lands
+on a different IP. Sites that tie an account to its login IP will flag
+that. Pin the key — normally the inbox address the account was created
+with — and every later mint for that key comes back on the same IP:
+
+```bash
+# First mint: picks an IP and remembers it for this address
+app proxy session --country US --bind-to support@myagent.com --json
+# → { "bindTo": "support@myagent.com", "boundIp": "72.14.x.x", ... }
+
+# Any later mint, any day: same IP
+app proxy session --country US --bind-to support@myagent.com --export
+
+# Which addresses are pinned, and to what
+app proxy bindings
+
+# Release a pin — the next session for this key gets a fresh IP.
+# This is also the only way to move a key to a different country.
+app proxy unbind --bind-to support@myagent.com
+```
+
+The natural pairing is one inbox ↔ one pinned IP: create the inbox,
+sign up through the pinned session, receive the OTP in the same inbox.
+The account then always sees the same mailbox and the same IP.
+
+## Network egress — SDK
+
+```ts
+const session = await ap.proxy.session({
+  country: "US",
+  bindTo: "support@myagent.com",   // omit for a fresh IP each time
+});
+
+// session.boundIp is the pinned IP (null if discovery hasn't landed yet)
+const proxyUrl =
+  `http://${session.username}:${session.password}@${session.host}:${session.port}`;
+
+const bindings = await ap.proxy.bindings();  // [{ bindTo, ip, country, ... }]
+await ap.proxy.unbind("support@myagent.com");
+```
+
+### What "pinned" guarantees
+
+- **Within a session** (`expiresAt`, up to 60 min): the IP is fixed.
+- **Across sessions**: the same upstream session id is reused, so the
+  same residential IP comes back as long as that peer is still online.
+  Residential IPs are real consumer connections — if the peer drops, the
+  upstream assigns a new one and `boundIp` goes stale. Re-read
+  `app proxy bindings` if your target cares about the exact address.
+- **Never** a dedicated static IP. If the user needs a guaranteed
+  never-changing address (compliance, IP allowlists), this is the wrong
+  product — say so rather than pinning and hoping.
+
 ## Inbound message shape
 
 ```ts
@@ -189,12 +264,20 @@ If `text` is null but `html` exists, strip tags or hand the HTML to the LLM dire
 - "send email from `<custom-domain>`"
 - "give the agent its own inbox"
 - "what mail came in at `<address>`"
+- "make this request come from the US / Japan / \<country\>"
+- "I need a residential IP" / "route this through a proxy" / "act like a
+  local user in \<country\>"
+- "keep this account on the same IP" / "don't let the IP change between
+  runs"
 
 ## When not to use
 
 - The user wants a generic SMTP relay or transactional mail provider — recommend a dedicated service.
 - The user wants a temp / disposable mail inbox — AgentPassport requires a domain the user owns.
 - The user is asking about identity / credentials / OAuth — different category.
+- The user needs a dedicated static IP that provably never changes —
+  pinning is best-effort on a residential pool, not an allowlist-grade
+  address.
 - The user has no `AP_API_KEY` set.
 
 ## Flag reference

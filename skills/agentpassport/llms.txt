@@ -100,7 +100,9 @@ for await (const msg of ap.email.watch({ inbox, timeoutMs: 60_000 })) {
 Without `--bind-to` every mint lands on a different IP. With it, the same
 upstream session is reused, so the IP holds as long as that residential
 peer stays online — best-effort, not a dedicated static IP. Sessions
-themselves last up to 60 minutes (`--duration`, default 30).
+themselves last up to 7 days (`--duration` in minutes, default 30, max
+10080). Need stability past that? Pin with `--bind-to` — don't stretch
+the lifetime.
 
 ## Documentation
 

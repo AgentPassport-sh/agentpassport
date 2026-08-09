@@ -14,7 +14,7 @@ export function registerProxy(program: Command): void {
     .requiredOption("--country <cc>", "ISO-3166 alpha-2 country code (e.g. US, GB, JP)")
     .option("--city <slug>", "Optional city slug (e.g. new-york, london)")
     .option("--no-sticky", "Don't pin to a single residential IP")
-    .option("--duration <minutes>", "Session lifetime in minutes (default 30, max 60)")
+    .option("--duration <minutes>", "Session lifetime in minutes (default 30, max 10080 = 7 days)")
     .option(
       "--bind-to <key>",
       "Pin this key (e.g. an inbox address) to one IP across mints",

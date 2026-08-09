@@ -51,7 +51,7 @@ export interface CreateProxySessionOptions {
   city?: string;
   /** Default true. Same session reused → same residential IP. */
   sticky?: boolean;
-  /** Sticky lifetime in minutes. Default 30, server clamps to [1, 60]. */
+  /** Sticky lifetime in minutes. Default 30, server clamps to [1, 10080] (7 days). */
   durationMinutes?: number;
   /**
    * Pin this session to a stable key — normally an inbox address. The

@@ -163,6 +163,11 @@ curl https://api.ipify.org        # → a US residential IP
 
 # City-level targeting, longer lifetime
 app proxy session --country US --city new-york --duration 60 --json
+
+# --duration is minutes: default 30, max 10080 (7 days). A long session
+# holds one IP without re-minting; for stability BEYOND that, pin with
+# --bind-to instead of stretching the lifetime.
+app proxy session --country US --duration 1440 --json     # 24 h
 ```
 
 ### Pinning an identity to one IP
@@ -210,7 +215,8 @@ await ap.proxy.unbind("support@myagent.com");
 
 ### What "pinned" guarantees
 
-- **Within a session** (`expiresAt`, up to 60 min): the IP is fixed.
+- **Within a session** (`expiresAt`, up to 7 days via `--duration`): the
+  IP is fixed.
 - **Across sessions**: the same upstream session id is reused, so the
   same residential IP comes back as long as that peer is still online.
   Residential IPs are real consumer connections — if the peer drops, the
